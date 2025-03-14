@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
-import { query } from "@/lib/db";
+import { saveHealthData, getHealthData } from "@/lib/db";
 
 type HealthData = {
   steps: number;
@@ -55,52 +55,8 @@ const HealthTrackingForm = () => {
         throw new Error("User not authenticated");
       }
       
-      // Format today's date in YYYY-MM-DD format
-      const today = new Date().toISOString().split('T')[0];
-      
-      // Check if entry for today already exists
-      const existingEntries = await query(
-        'SELECT * FROM health_metrics WHERE user_id = ? AND date = ?',
-        [user.id, today]
-      ) as any[];
-      
-      let result;
-      
-      if (existingEntries.length > 0) {
-        // Update existing entry
-        result = await query(
-          `UPDATE health_metrics 
-           SET steps = ?, weight = ?, heart_rate = ?, sleep_hours = ?, water_intake = ?, stress_level = ?
-           WHERE user_id = ? AND date = ?`,
-          [
-            formData.steps, 
-            formData.weight, 
-            formData.heartRate, 
-            formData.sleepHours, 
-            formData.waterIntake, 
-            formData.stressLevel,
-            user.id,
-            today
-          ]
-        );
-      } else {
-        // Insert new entry
-        result = await query(
-          `INSERT INTO health_metrics 
-           (user_id, date, steps, weight, heart_rate, sleep_hours, water_intake, stress_level)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            user.id,
-            today,
-            formData.steps, 
-            formData.weight, 
-            formData.heartRate, 
-            formData.sleepHours, 
-            formData.waterIntake, 
-            formData.stressLevel
-          ]
-        );
-      }
+      // Save health data using our database utility
+      await saveHealthData(user.id, formData);
       
       toast({
         title: "Data Saved",

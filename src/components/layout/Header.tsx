@@ -70,12 +70,12 @@ const Header = () => {
               
               <div className="flex items-center gap-2">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="/avatar-placeholder.jpg" alt={user?.username || "User"} />
+                  <AvatarImage src="/avatar-placeholder.jpg" alt={user?.name || "User"} />
                   <AvatarFallback className="bg-fitlink-primary text-white">
-                    {user?.username?.substring(0, 2).toUpperCase() || "U"}
+                    {user?.name?.substring(0, 2).toUpperCase() || "U"}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium hidden sm:inline-block">{user?.username}</span>
+                <span className="text-sm font-medium hidden sm:inline-block">{user?.name}</span>
               </div>
               
               <Button 
