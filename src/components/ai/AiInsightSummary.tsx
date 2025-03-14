@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import CustomProgress from "@/components/ui/custom-progress";
 
 interface HealthScore {
   category: string;
@@ -66,7 +66,7 @@ const AiInsightSummary = ({ overallScore, healthScores }: AiInsightSummaryProps)
                   {item.score}%
                 </span>
               </div>
-              <Progress 
+              <CustomProgress 
                 value={item.score} 
                 className="h-2" 
                 indicatorClassName={item.color}
