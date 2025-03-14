@@ -1,7 +1,8 @@
 
 import { Link } from "react-router-dom";
-import { X, Home, Activity, Brain } from "lucide-react";
+import { X, Home, Activity, Brain, LogIn, UserPlus, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/AuthContext";
 
 interface MobileNavProps {
   isOpen: boolean;
@@ -9,6 +10,8 @@ interface MobileNavProps {
 }
 
 const MobileNav = ({ isOpen, onClose }: MobileNavProps) => {
+  const { isAuthenticated, logout } = useAuth();
+
   if (!isOpen) return null;
 
   return (
@@ -45,6 +48,41 @@ const MobileNav = ({ isOpen, onClose }: MobileNavProps) => {
           <Brain className="h-5 w-5 text-fitlink-accent" />
           AI Recommendations
         </Link>
+        
+        <div className="border-t border-border my-2"></div>
+        
+        {isAuthenticated ? (
+          <Button 
+            variant="ghost" 
+            className="flex items-center justify-start gap-3 text-lg font-medium" 
+            onClick={() => {
+              logout();
+              onClose();
+            }}
+          >
+            <LogOut className="h-5 w-5 text-fitlink-primary" />
+            Logout
+          </Button>
+        ) : (
+          <>
+            <Link 
+              to="/login" 
+              className="flex items-center gap-3 text-lg font-medium" 
+              onClick={onClose}
+            >
+              <LogIn className="h-5 w-5 text-fitlink-primary" />
+              Sign In
+            </Link>
+            <Link 
+              to="/register" 
+              className="flex items-center gap-3 text-lg font-medium" 
+              onClick={onClose}
+            >
+              <UserPlus className="h-5 w-5 text-fitlink-secondary" />
+              Create Account
+            </Link>
+          </>
+        )}
       </nav>
     </div>
   );
