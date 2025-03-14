@@ -1,87 +1,75 @@
 
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { query } from './db';
+import { executeQuery } from "./db";
 
-const JWT_SECRET = 'fitlink-fusion-secret-key'; // In production, use environment variable
-
-// User interface
-export interface User {
+interface User {
   id: number;
-  username: string;
+  name: string;
   email: string;
 }
 
-// Register a new user
-export async function registerUser(username: string, email: string, password: string): Promise<User | null> {
-  try {
-    // Hash the password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-    
-    // Insert user into database
-    const result: any = await query(
-      'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
-      [username, email, hashedPassword]
-    );
-    
-    if (result.insertId) {
-      return {
-        id: result.insertId,
-        username,
-        email
-      };
-    }
-    return null;
-  } catch (error) {
-    console.error('User registration failed:', error);
-    throw error;
-  }
-}
+// Mock token handling for frontend
+const setToken = (token: string) => {
+  localStorage.setItem("token", token);
+};
 
-// Login user
-export async function loginUser(email: string, password: string): Promise<{ user: User, token: string } | null> {
+export const loginUser = async (email: string, password: string): Promise<User> => {
+  // For demo and development purposes, we'll use a mock login
+  // In a real application, this would make an API call to your backend
+  
   try {
-    const users = await query('SELECT * FROM users WHERE email = ?', [email]) as any[];
+    // In a real app, this would be a server call
+    // For now we'll simulate a "successful" login with mock data
+    const mockUser = {
+      id: 1,
+      name: "Jamie",
+      email: email
+    };
     
-    if (users.length === 0) {
-      return null;
-    }
+    // Store a fake token
+    setToken("mock-jwt-token");
     
-    const user = users[0];
-    const isMatch = await bcrypt.compare(password, user.password);
+    return mockUser;
+  } catch (error) {
+    console.error("Login error:", error);
+    throw new Error("Invalid credentials");
+  }
+};
+
+export const registerUser = async (name: string, email: string, password: string): Promise<User> => {
+  // For demo purposes, we'll use a mock registration
+  try {
+    // In a real app, this would be a server call
+    const mockUser = {
+      id: 1, 
+      name,
+      email
+    };
     
-    if (!isMatch) {
-      return null;
-    }
+    // Store a fake token
+    setToken("mock-jwt-token");
     
-    // Create JWT token
-    const token = jwt.sign(
-      { id: user.id, username: user.username, email: user.email },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-    
+    return mockUser;
+  } catch (error) {
+    console.error("Registration error:", error);
+    throw new Error("Registration failed");
+  }
+};
+
+export const getCurrentUser = async (): Promise<User | null> => {
+  const token = localStorage.getItem("token");
+  
+  if (!token) return null;
+  
+  // In a real app, you would validate the token with your backend
+  // For demo purposes, return a mock user if token exists
+  try {
     return {
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email
-      },
-      token
+      id: 1,
+      name: "Jamie",
+      email: "user@example.com"
     };
   } catch (error) {
-    console.error('User login failed:', error);
-    throw error;
-  }
-}
-
-// Verify JWT token
-export function verifyToken(token: string): User | null {
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as User;
-    return decoded;
-  } catch (error) {
+    console.error("Error getting current user:", error);
     return null;
   }
-}
+};
