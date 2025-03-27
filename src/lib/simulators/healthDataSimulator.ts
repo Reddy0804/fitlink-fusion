@@ -1,17 +1,6 @@
-
 import { saveHealthData } from "@/lib/db";
-
-// Define types for vital signs
-export interface VitalSigns {
-  bloodGlucose: number; // mg/dL
-  systolicBP: number; // mmHg
-  diastolicBP: number; // mmHg
-  heartRate: number; // bpm
-  oxygenSaturation: number; // percentage
-  temperature: number; // Celsius
-  respirationRate: number; // breaths per minute
-  userId: number;
-}
+import { VitalSigns } from "@/types/healthTypes";
+import { HEALTH_DATA_SIMULATION_INTERVAL } from "@/config/config";
 
 // Generate random values within normal ranges
 const generateRandomVitals = (userId: number, condition?: string): VitalSigns => {
@@ -58,7 +47,7 @@ const generateRandomVitals = (userId: number, condition?: string): VitalSigns =>
 export const startVitalSignsSimulation = (
   userId: number, 
   condition?: string, 
-  intervalMinutes = 60
+  intervalMinutes = HEALTH_DATA_SIMULATION_INTERVAL
 ) => {
   console.log(`Starting vital signs simulation for user ${userId}, condition: ${condition || 'healthy'}`);
   
@@ -105,16 +94,7 @@ const generateAndSaveVitals = async (userId: number, condition?: string) => {
     await saveHealthData(userId, healthData);
     console.log(`Generated vitals for user ${userId}:`, vitals);
     
-    // Analyze vitals using ML model
-    analyzeVitals(vitals);
-    
   } catch (error) {
     console.error('Error generating vital signs:', error);
   }
-};
-
-// Function to analyze vitals (to be expanded with ML model)
-const analyzeVitals = (vitals: VitalSigns) => {
-  // This will be replaced with actual ML model in next steps
-  console.log('Analyzing vitals:', vitals);
 };

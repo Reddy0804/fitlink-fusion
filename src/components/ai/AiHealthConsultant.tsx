@@ -1,13 +1,17 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Brain, AlertTriangle, MessageCircle, ArrowDown } from "lucide-react";
+import { Brain, AlertTriangle, MessageCircle, ArrowDown, Settings } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { getHealthInsights } from "@/lib/db";
 import { useAuth } from "@/context/AuthContext";
-import { HealthInsight } from "@/lib/ml/healthModels";
+import { HealthInsight } from "@/types/healthTypes";
+import { generateAiResponse, getApiKey, setApiKey } from "@/lib/ai/aiService";
+import dbService from "@/lib/database/dbService";
 
 interface AiHealthConsultantProps {
   className?: string;
@@ -25,9 +29,28 @@ const AiHealthConsultant = ({ className }: AiHealthConsultantProps) => {
   const [input, setInput] = useState('');
   const [insights, setInsights] = useState<HealthInsight[]>([]);
   const [loading, setLoading] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const [patientInfo, setPatientInfo] = useState<any>(null);
   
+  // Check if API key is already set
+  useEffect(() => {
+    const existingKey = getApiKey();
+    if (!existingKey) {
+      // Show settings dialog if no API key is set
+      setShowSettings(true);
+    }
+    
+    // Load patient info for context
+    if (user) {
+      loadPatientInfo();
+    }
+  }, [user]);
+  
+  // Initial greeting and data loading
   useEffect(() => {
     // Initial greeting
     setMessages([
@@ -39,13 +62,37 @@ const AiHealthConsultant = ({ className }: AiHealthConsultantProps) => {
     ]);
     
     // Fetch initial insights
-    loadHealthInsights();
+    if (user) {
+      loadHealthInsights();
+    }
     
     // Set up interval to refresh insights periodically
-    const intervalId = setInterval(loadHealthInsights, 30000);
+    const intervalId = setInterval(() => {
+      if (user) {
+        loadHealthInsights();
+      }
+    }, 30000);
     
     return () => clearInterval(intervalId);
-  }, []);
+  }, [user]);
+  
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+  
+  const loadPatientInfo = async () => {
+    if (!user) return;
+    
+    try {
+      const patient = await dbService.getPatient(user.id);
+      if (patient) {
+        setPatientInfo(patient);
+      }
+    } catch (error) {
+      console.error("Error loading patient info:", error);
+    }
+  };
   
   const loadHealthInsights = async () => {
     if (!user) return;
@@ -79,6 +126,17 @@ const AiHealthConsultant = ({ className }: AiHealthConsultantProps) => {
   const handleSendMessage = async () => {
     if (!input.trim() || !user) return;
     
+    // Check if API key is set
+    if (!getApiKey()) {
+      toast({
+        title: "API Key Required",
+        description: "Please set your Groq LLama API key in settings to use the AI consultant.",
+        variant: "destructive",
+      });
+      setShowSettings(true);
+      return;
+    }
+    
     // Add user message
     const userMessage: Message = {
       content: input,
@@ -92,12 +150,12 @@ const AiHealthConsultant = ({ className }: AiHealthConsultantProps) => {
     
     try {
       // Generate AI response based on user question and health insights
-      const response = await generateAiResponse(input, insights);
+      const aiResponse = await generateAiResponse(input, insights, patientInfo);
       
       // Add AI response after a small delay to make it feel more natural
       setTimeout(() => {
         setMessages(prev => [...prev, {
-          content: response,
+          content: aiResponse.content,
           sender: 'ai',
           timestamp: new Date()
         }]);
@@ -115,166 +173,167 @@ const AiHealthConsultant = ({ className }: AiHealthConsultantProps) => {
     }
   };
   
-  // Simple AI response generator based on input and health insights
-  const generateAiResponse = async (question: string, insights: HealthInsight[]): Promise<string> => {
-    const normalizedQuestion = question.toLowerCase();
+  const handleSaveApiKey = () => {
+    if (!apiKeyInput.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid API key.",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    // Check if the question is about diabetes
-    if (normalizedQuestion.includes('diabetes') || normalizedQuestion.includes('blood sugar') || normalizedQuestion.includes('glucose')) {
-      const diabetesInsights = insights.filter(i => i.condition === 'diabetes');
+    const success = setApiKey(apiKeyInput.trim());
+    
+    if (success) {
+      toast({
+        title: "Success",
+        description: "API key saved successfully.",
+      });
+      setShowSettings(false);
       
-      if (diabetesInsights.length > 0) {
-        const latestInsight = diabetesInsights[0];
-        
-        if (normalizedQuestion.includes('what') && normalizedQuestion.includes('risk')) {
-          return `Based on your blood glucose readings, your diabetes risk is currently ${latestInsight.risk}. ${latestInsight.recommendation}`;
-        } else if (normalizedQuestion.includes('what') && normalizedQuestion.includes('do')) {
-          return `To manage your diabetes risk: ${latestInsight.recommendation} Regular monitoring is important.`;
-        } else {
-          return `Your latest blood glucose reading indicates a ${latestInsight.risk} risk level. ${latestInsight.factors.join('. ')}. ${latestInsight.recommendation}`;
-        }
-      } else {
-        return "I don't have enough data about your blood glucose levels yet. Regular monitoring will help provide better insights.";
-      }
-    }
-    
-    // Check if the question is about blood pressure or hypertension
-    else if (normalizedQuestion.includes('blood pressure') || normalizedQuestion.includes('hypertension')) {
-      const bpInsights = insights.filter(i => i.condition === 'hypertension');
-      
-      if (bpInsights.length > 0) {
-        const latestInsight = bpInsights[0];
-        
-        return `Your blood pressure readings indicate a ${latestInsight.risk} risk level. ${latestInsight.factors.join('. ')}. ${latestInsight.recommendation}`;
-      } else {
-        return "I don't have enough data about your blood pressure yet. Regular monitoring will help provide better insights.";
-      }
-    }
-    
-    // Check if the question is about heart health
-    else if (normalizedQuestion.includes('heart') || normalizedQuestion.includes('cardiovascular') || normalizedQuestion.includes('cardiac')) {
-      const heartInsights = insights.filter(i => i.condition === 'cardiovascular');
-      
-      if (heartInsights.length > 0) {
-        const latestInsight = heartInsights[0];
-        
-        return `Your cardiovascular health indicators show a ${latestInsight.risk} risk level. ${latestInsight.factors.join('. ')}. ${latestInsight.recommendation}`;
-      } else {
-        return "I don't have enough data about your cardiovascular health yet. Regular monitoring will help provide better insights.";
-      }
-    }
-    
-    // General health questions
-    else if (normalizedQuestion.includes('health') && normalizedQuestion.includes('overall')) {
-      // Get the highest risk from all conditions
-      if (insights.length > 0) {
-        const riskLevels = {
-          'low': 1,
-          'moderate': 2,
-          'high': 3,
-          'critical': 4
-        };
-        
-        let highestRiskInsight = insights[0];
-        
-        for (const insight of insights) {
-          if (riskLevels[insight.risk] > riskLevels[highestRiskInsight.risk]) {
-            highestRiskInsight = insight;
-          }
-        }
-        
-        return `Overall, your most significant health concern is related to ${highestRiskInsight.condition} with a ${highestRiskInsight.risk} risk level. ${highestRiskInsight.recommendation}`;
-      } else {
-        return "I don't have enough health data yet to give you a comprehensive overview. Continue tracking your health metrics to get more insights.";
-      }
-    }
-    
-    // What can you do questions
-    else if (normalizedQuestion.includes('what can you do') || normalizedQuestion.includes('how can you help')) {
-      return "I can monitor your health data, analyze trends, provide personalized recommendations, answer health-related questions, and alert you if I detect any concerning patterns. The more data you provide, the better insights I can offer.";
-    }
-    
-    // Fallback response
-    else {
-      return "I'm currently focused on monitoring diabetes, hypertension, and cardiovascular health. Please ask me specific questions about these areas or about your overall health status.";
+      // Add a system message about the connection
+      setMessages(prev => [...prev, {
+        content: "Connected to Groq LLama AI. I'm ready to assist you with your health questions.",
+        sender: 'ai',
+        timestamp: new Date()
+      }]);
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to save API key. Please try again.",
+        variant: "destructive",
+      });
     }
   };
   
   return (
-    <Card className={`flex flex-col h-[500px] ${className}`}>
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-fitlink-secondary/10 flex items-center justify-center">
-            <Brain className="h-5 w-5 text-fitlink-accent" />
-          </div>
-          <div>
-            <CardTitle className="text-lg">AI Health Consultant</CardTitle>
-            <CardDescription>Ask questions about your health</CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="flex-grow overflow-y-auto">
-        <div className="space-y-4">
-          {messages.map((message, index) => (
-            <div
-              key={index}
-              className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[80%] rounded-lg p-3 ${
-                  message.sender === 'user'
-                    ? 'bg-fitlink-primary text-white'
-                    : message.isAlert
-                    ? 'bg-red-100 border border-red-300 text-red-800'
-                    : 'bg-gray-100'
-                }`}
-              >
-                {message.isAlert && (
-                  <div className="flex items-center gap-2 mb-1">
-                    <AlertTriangle className="h-4 w-4 text-red-600" />
-                    <span className="font-semibold text-red-600">Health Alert</span>
-                  </div>
-                )}
-                <p className="text-sm">{message.content}</p>
-                <p className="text-xs mt-1 opacity-70">
-                  {message.timestamp.toLocaleTimeString()}
-                </p>
+    <>
+      <Card className={`flex flex-col h-[500px] ${className}`}>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-fitlink-secondary/10 flex items-center justify-center">
+                <Brain className="h-5 w-5 text-fitlink-accent" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">AI Health Consultant</CardTitle>
+                <CardDescription>Ask questions about your health</CardDescription>
               </div>
             </div>
-          ))}
-          {loading && (
-            <div className="flex justify-start">
-              <div className="max-w-[80%] rounded-lg p-3 bg-gray-100">
-                <div className="flex items-center gap-2">
-                  <div className="bg-gray-300 w-2 h-2 rounded-full animate-pulse"></div>
-                  <div className="bg-gray-300 w-2 h-2 rounded-full animate-pulse delay-150"></div>
-                  <div className="bg-gray-300 w-2 h-2 rounded-full animate-pulse delay-300"></div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowSettings(true)}
+              title="API Settings"
+            >
+              <Settings className="h-5 w-5" />
+            </Button>
+          </div>
+        </CardHeader>
+        
+        <CardContent className="flex-grow overflow-y-auto">
+          <div className="space-y-4">
+            {messages.map((message, index) => (
+              <div
+                key={index}
+                className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-[80%] rounded-lg p-3 ${
+                    message.sender === 'user'
+                      ? 'bg-fitlink-primary text-white'
+                      : message.isAlert
+                      ? 'bg-red-100 border border-red-300 text-red-800'
+                      : 'bg-gray-100'
+                  }`}
+                >
+                  {message.isAlert && (
+                    <div className="flex items-center gap-2 mb-1">
+                      <AlertTriangle className="h-4 w-4 text-red-600" />
+                      <span className="font-semibold text-red-600">Health Alert</span>
+                    </div>
+                  )}
+                  <p className="text-sm whitespace-pre-line">{message.content}</p>
+                  <p className="text-xs mt-1 opacity-70">
+                    {message.timestamp.toLocaleTimeString()}
+                  </p>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
-      </CardContent>
+            ))}
+            {loading && (
+              <div className="flex justify-start">
+                <div className="max-w-[80%] rounded-lg p-3 bg-gray-100">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-gray-300 w-2 h-2 rounded-full animate-pulse"></div>
+                    <div className="bg-gray-300 w-2 h-2 rounded-full animate-pulse delay-150"></div>
+                    <div className="bg-gray-300 w-2 h-2 rounded-full animate-pulse delay-300"></div>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        </CardContent>
+        
+        <CardFooter className="border-t pt-3">
+          <div className="flex w-full gap-2">
+            <Input
+              placeholder="Ask me about your health..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+              className="flex-grow"
+            />
+            <Button 
+              onClick={handleSendMessage} 
+              disabled={loading || !input.trim() || !getApiKey()}
+            >
+              <ArrowDown className="h-4 w-4 -rotate-90" />
+            </Button>
+          </div>
+        </CardFooter>
+      </Card>
       
-      <CardFooter className="border-t pt-3">
-        <div className="flex w-full gap-2">
-          <Input
-            placeholder="Ask me about your health..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-            className="flex-grow"
-          />
-          <Button 
-            onClick={handleSendMessage} 
-            disabled={loading || !input.trim()}
-          >
-            <ArrowDown className="h-4 w-4 -rotate-90" />
-          </Button>
-        </div>
-      </CardFooter>
-    </Card>
+      {/* API Key Settings Dialog */}
+      <Dialog open={showSettings} onOpenChange={setShowSettings}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>AI Consultant Settings</DialogTitle>
+            <DialogDescription>
+              Please provide your Groq LLama API key to enable the AI health consultant.
+              You can get an API key from <a href="https://console.groq.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Groq Console</a>.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="apiKey">Groq LLama API Key</Label>
+              <Input
+                id="apiKey"
+                type="password"
+                placeholder="Enter your API key"
+                value={apiKeyInput}
+                onChange={(e) => setApiKeyInput(e.target.value)}
+              />
+            </div>
+            
+            <div className="text-sm text-gray-500">
+              <p>Your API key is stored securely in your browser's local storage and is only used to make requests to the Groq API.</p>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSettings(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveApiKey}>
+              Save API Key
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

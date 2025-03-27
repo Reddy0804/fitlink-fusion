@@ -1,19 +1,20 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { loginUser, registerUser, getCurrentUser } from "@/lib/auth";
+import { loginUser, getCurrentUser } from "@/lib/auth";
+import { toast } from "@/components/ui/use-toast";
 
 interface User {
   id: number;
   name: string;
   email: string;
+  role?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   loading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (name: string, email: string, password: string) => Promise<boolean>;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
 
@@ -48,10 +49,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     initAuth();
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      const userData = await loginUser(email, password);
+      const userData = await loginUser(username, password);
       setUser(userData);
+      
+      toast({
+        title: "Welcome",
+        description: `Successfully logged in as ${userData.name}`,
+      });
+      
       return true;
     } catch (error) {
       console.error("Login error:", error);
@@ -59,20 +66,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const register = async (name: string, email: string, password: string): Promise<boolean> => {
-    try {
-      const userData = await registerUser(name, email, password);
-      setUser(userData);
-      return true;
-    } catch (error) {
-      console.error("Registration error:", error);
-      return false;
-    }
-  };
-
   const logout = () => {
     localStorage.removeItem("token");
     setUser(null);
+    
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out.",
+    });
   };
 
   return (
@@ -82,7 +83,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isAuthenticated: !!user,
         loading,
         login,
-        register,
         logout,
       }}
     >

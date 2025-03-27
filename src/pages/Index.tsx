@@ -9,6 +9,7 @@ import HealthInsightsPanel from "@/components/health/HealthInsightsPanel";
 import AiHealthConsultant from "@/components/ai/AiHealthConsultant";
 import { useAuth } from "@/context/AuthContext";
 import { startVitalSignsSimulation } from "@/lib/simulators/healthDataSimulator";
+import dbService from "@/lib/database/dbService";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -18,10 +19,30 @@ const Dashboard = () => {
     // This would be replaced by real sensor data in a production app
     let stopSimulation: (() => void) | null = null;
     
-    if (user) {
-      // For demo purposes, we'll simulate data for a user with diabetes
-      stopSimulation = startVitalSignsSimulation(user.id, 'diabetes', 5);
-    }
+    const setupSimulation = async () => {
+      if (!user) return;
+      
+      try {
+        // Get patient info to determine medical conditions
+        const patient = await dbService.getPatient(user.id);
+        
+        // For demo purposes, we'll simulate data based on the first medical condition
+        // or default to 'diabetes' if none is specified
+        const condition = patient?.medicalConditions?.[0]?.toLowerCase().includes('diabetes') 
+          ? 'diabetes' 
+          : patient?.medicalConditions?.[0]?.toLowerCase().includes('hypertension')
+            ? 'hypertension'
+            : patient?.medicalConditions?.[0]?.toLowerCase().includes('cardio')
+              ? 'cardiovascular'
+              : 'diabetes';
+        
+        stopSimulation = startVitalSignsSimulation(user.id, condition, 5);
+      } catch (error) {
+        console.error("Error setting up simulation:", error);
+      }
+    };
+    
+    setupSimulation();
     
     return () => {
       if (stopSimulation) stopSimulation();
@@ -38,7 +59,7 @@ const Dashboard = () => {
   return (
     <div className="container py-6 space-y-8">
       <div>
-        <h1 className="text-3xl font-bold mb-2">Welcome back, Jamie</h1>
+        <h1 className="text-3xl font-bold mb-2">Welcome back, {user?.name || 'Patient'}</h1>
         <p className="text-muted-foreground">
           Here's an overview of your health metrics and personalized recommendations.
         </p>

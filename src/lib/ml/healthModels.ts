@@ -1,19 +1,8 @@
-
 import { saveHealthInsight } from "@/lib/db";
+import { HealthInsight } from "@/types/healthTypes";
 
 // Types of conditions we're monitoring
 export type ConditionType = 'diabetes' | 'hypertension' | 'cardiovascular';
-
-// Interface for health insights
-export interface HealthInsight {
-  userId: number;
-  condition: ConditionType;
-  severity: number; // 0-100 scale
-  risk: 'low' | 'moderate' | 'high' | 'critical';
-  factors: string[];
-  recommendation: string;
-  timestamp: string;
-}
 
 // Simple rule-based model for diabetes risk assessment
 export const diabetesModel = (
@@ -213,7 +202,7 @@ const getRecommendations = (condition: ConditionType, severity: number): string 
 export const analyzeHealthData = async (userId: number, healthData: any): Promise<HealthInsight[]> => {
   const insights: HealthInsight[] = [];
   const timestamp = new Date().toISOString();
-  const age = 45; // Mock age, would come from user profile in real app
+  const age = healthData.age || 45; 
   
   // Analyze diabetes risk
   if (healthData.bloodGlucose) {
