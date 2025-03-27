@@ -1,138 +1,68 @@
 
+import { toast } from "@/hooks/use-toast";
 import dbService from "./database/dbService";
 
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  role?: string;
-}
-
-// Token handling for frontend
-const setToken = (token: string) => {
-  localStorage.setItem("token", token);
-};
-
-// Simple token generator for demo purposes
-const generateToken = (userId: number): string => {
-  return `mock-jwt-${userId}-${Date.now()}`;
-};
-
-export const registerUser = async (username: string, email: string, password: string): Promise<User | null> => {
+// This function simulates authentication logic
+export const authenticateUser = async (username: string, password: string) => {
   try {
-    // Check if user already exists
-    const credentials = JSON.parse(localStorage.getItem("health_app_credentials") || '[]');
-    const userExists = credentials.find((u: any) => 
-      u.username === username || u.email === email
-    );
+    console.log("Authenticating user:", username);
     
-    if (userExists) {
-      throw new Error("User already exists");
+    // In a real app, you would hash the password and check against a database
+    // For this demo, we're using simple matching
+    const user = await dbService.getUserByCredentials(username, password);
+    
+    if (user) {
+      console.log("Authentication successful");
+      return user;
     }
     
-    // Create new user ID
-    const newUserId = credentials.length > 0 
-      ? Math.max(...credentials.map((u: any) => u.id)) + 1 
-      : 1;
+    console.log("Authentication failed: Invalid credentials");
+    return null;
+  } catch (error) {
+    console.error("Authentication error:", error);
+    return null;
+  }
+};
+
+// Function to register a new user
+export const registerUser = async (username: string, email: string, password: string) => {
+  try {
+    console.log("Registering user:", username, email);
     
-    // Add new user credentials
+    // Check if user already exists
+    const existingUser = await dbService.getUserByUsername(username);
+    if (existingUser) {
+      console.log("Registration failed: Username already exists");
+      return null;
+    }
+    
+    // In a real app, you would hash the password before storing
     const newUser = {
-      id: newUserId,
+      id: Date.now(), // Simple ID generation
       username,
       email,
-      password,
-      role: 'patient'
+      password, // In real app, this would be hashed
+      role: 'patient',
+      created: new Date().toISOString()
     };
     
-    credentials.push(newUser);
-    localStorage.setItem("health_app_credentials", JSON.stringify(credentials));
+    // Save to database
+    const savedUser = await dbService.saveUser(newUser);
+    if (savedUser) {
+      // Create patient record
+      await dbService.savePatient({
+        userId: savedUser.id,
+        name: username,
+        age: 35, // Default age
+        medicalConditions: [],
+        medications: []
+      });
+    }
     
-    // Create patient record
-    const patient = {
-      id: newUserId,
-      name: username,
-      email,
-      age: 30, // Default values
-      height: 175,
-      weight: 70
-    };
-    
-    const patients = JSON.parse(localStorage.getItem("health_app_patients") || '[]');
-    patients.push(patient);
-    localStorage.setItem("health_app_patients", JSON.stringify(patients));
-    
-    return {
-      id: newUserId,
-      name: username,
-      email,
-      role: 'patient'
-    };
+    console.log("User registered successfully");
+    return savedUser;
   } catch (error) {
     console.error("Registration error:", error);
-    throw error;
-  }
-};
-
-export const loginUser = async (username: string, password: string): Promise<User> => {
-  try {
-    // Validate credentials against database
-    const auth = await dbService.validateCredentials(username, password);
-    
-    if (!auth) {
-      throw new Error("Invalid credentials");
-    }
-    
-    // Get patient information
-    const patient = await dbService.getPatient(auth.id);
-    
-    if (!patient) {
-      throw new Error("Patient record not found");
-    }
-    
-    // Generate and store token
-    const token = generateToken(auth.id);
-    setToken(token);
-    
-    // Return user object
-    return {
-      id: patient.id,
-      name: patient.name,
-      email: patient.email,
-      role: auth.role
-    };
-  } catch (error) {
-    console.error("Login error:", error);
-    throw new Error("Invalid credentials");
-  }
-};
-
-export const getCurrentUser = async (): Promise<User | null> => {
-  const token = localStorage.getItem("token");
-  
-  if (!token) return null;
-  
-  // For demo purposes, extract user ID from token
-  // In a real app, you would validate the token with your backend
-  try {
-    const userId = parseInt(token.split('-')[2]);
-    
-    if (isNaN(userId)) {
-      throw new Error("Invalid token");
-    }
-    
-    const patient = await dbService.getPatient(userId);
-    
-    if (!patient) {
-      throw new Error("Patient record not found");
-    }
-    
-    return {
-      id: patient.id,
-      name: patient.name,
-      email: patient.email
-    };
-  } catch (error) {
-    console.error("Error getting current user:", error);
     return null;
   }
 };

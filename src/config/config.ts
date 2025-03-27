@@ -2,9 +2,9 @@
 // Application configuration settings
 
 // API Keys (these should be provided securely in production)
-export const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
+export const GROQ_API_KEY = "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";
 
-// Database configuration (placeholder for your actual connection details)
+// Database configuration (placeholder for future connection details)
 export const DB_CONFIG = {
   host: process.env.DB_HOST || 'localhost',
   port: Number(process.env.DB_PORT) || 5432,

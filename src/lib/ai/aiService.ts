@@ -1,20 +1,23 @@
-
-import { GROQ_API_KEY, GROQ_API_ENDPOINT } from "@/config/config";
+import { GROQ_API_ENDPOINT } from "@/config/config";
 import { HealthInsight } from "@/types/healthTypes";
 
-// This key will be set by the user through UI
-let apiKey = '';
+// Default API key - this is what the user provided
+const DEFAULT_API_KEY = "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";
+
+// This key will be set by the user through UI or use the default
+let apiKey = DEFAULT_API_KEY;
 
 export const setApiKey = (key: string) => {
-  apiKey = key;
-  localStorage.setItem('groq_api_key', key);
+  const keyToUse = key.trim() || DEFAULT_API_KEY;
+  apiKey = keyToUse;
+  localStorage.setItem('groq_api_key', keyToUse);
   console.log('Groq API key set successfully');
   return true;
 };
 
 export const getApiKey = (): string => {
   if (!apiKey) {
-    apiKey = localStorage.getItem('groq_api_key') || '';
+    apiKey = localStorage.getItem('groq_api_key') || DEFAULT_API_KEY;
   }
   return apiKey;
 };
@@ -32,13 +35,6 @@ export const generateAiResponse = async (
   patientInfo?: any
 ): Promise<AiResponse> => {
   const key = getApiKey();
-  
-  if (!key) {
-    return {
-      content: "I need an API key to function. Please provide a Groq LLama API key in the settings.",
-      error: "No API key provided"
-    };
-  }
   
   try {
     // Build context for the AI from patient info and health insights

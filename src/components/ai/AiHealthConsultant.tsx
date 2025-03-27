@@ -29,7 +29,7 @@ const AiHealthConsultant = ({ className }: AiHealthConsultantProps) => {
   const [input, setInput] = useState('');
   const [insights, setInsights] = useState<HealthInsight[]>([]);
   const [loading, setLoading] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [apiKeyInput, setApiKeyInput] = useState(getApiKey());
   const [showSettings, setShowSettings] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -42,6 +42,9 @@ const AiHealthConsultant = ({ className }: AiHealthConsultantProps) => {
     if (!existingKey) {
       // Show settings dialog if no API key is set
       setShowSettings(true);
+    } else {
+      // Set the current API key to the input field
+      setApiKeyInput(existingKey);
     }
     
     // Load patient info for context

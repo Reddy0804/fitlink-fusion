@@ -1,18 +1,28 @@
 
 // Database utilities
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { HealthInsight } from "@/types/healthTypes";
 import dbService from "./database/dbService";
+import { startVitalSignsSimulation } from "./simulators/healthDataSimulator";
+
+// Tracking whether simulation has been started
+let simulationStarted = false;
 
 export const initDb = async () => {
   // Call this at app startup to ensure database is ready
   console.log("Database initialized");
   
   // Generate some initial test data if none exists
-  const healthData = await dbService.getHealthData(2);
+  const healthData = await dbService.getHealthData(1);
   if (healthData.length === 0) {
     console.log("No health data found, initializing with test data...");
-    // This will trigger data simulation
+    
+    // Start simulation for demo user with some conditions
+    if (!simulationStarted) {
+      simulationStarted = true;
+      console.log("Starting health data simulation...");
+      startVitalSignsSimulation(1, 'diabetes');
+    }
   }
   
   return true;

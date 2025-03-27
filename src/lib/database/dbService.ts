@@ -1,199 +1,165 @@
 
-import { toast } from "@/components/ui/use-toast";
-import { DB_CONFIG } from "@/config/config";
-import { Patient, HealthData, HealthInsight } from "@/types/healthTypes";
+// Database Service (using localStorage)
+// In a production app, this would be replaced with a real database
 
-// Enum for database operations (for better error handling)
-enum DBOperation {
-  READ = 'read',
-  WRITE = 'write',
-  UPDATE = 'update',
-  DELETE = 'delete'
-}
+// Helper to generate a unique ID
+const generateId = () => Date.now().toString();
 
-// For demo purposes, we'll use a simulated database with localStorage
-// This can be replaced with actual database code when connection details are provided
-class DatabaseService {
-  private storageKeys = {
-    patients: 'health_app_patients',
-    healthData: 'health_app_health_data',
-    insights: 'health_app_insights',
-    credentials: 'health_app_credentials'
-  };
-
-  constructor() {
-    console.log('Initializing database service with config:', DB_CONFIG);
-    this.initLocalStorage();
+// Initialize localStorage with default data if needed
+const initializeDb = () => {
+  if (!localStorage.getItem('health_data')) {
+    localStorage.setItem('health_data', JSON.stringify([]));
   }
-
-  private initLocalStorage() {
-    // Initialize empty collections if they don't exist
-    if (!localStorage.getItem(this.storageKeys.patients)) {
-      localStorage.setItem(this.storageKeys.patients, JSON.stringify([]));
-    }
-    
-    if (!localStorage.getItem(this.storageKeys.healthData)) {
-      localStorage.setItem(this.storageKeys.healthData, JSON.stringify([]));
-    }
-    
-    if (!localStorage.getItem(this.storageKeys.insights)) {
-      localStorage.setItem(this.storageKeys.insights, JSON.stringify([]));
-    }
-    
-    if (!localStorage.getItem(this.storageKeys.credentials)) {
-      // Add default admin and test user
-      const defaultCredentials = [
-        { id: 1, username: 'admin', password: 'admin123', role: 'admin' },
-        { id: 2, username: 'patient', password: 'patient123', role: 'patient' }
-      ];
-      localStorage.setItem(this.storageKeys.credentials, JSON.stringify(defaultCredentials));
-      
-      // Add default patient record
-      this.addPatient({
-        id: 2,
-        name: 'Jamie Smith',
+  
+  if (!localStorage.getItem('health_insights')) {
+    localStorage.setItem('health_insights', JSON.stringify([]));
+  }
+  
+  if (!localStorage.getItem('users')) {
+    // Add default user for demo
+    const defaultUsers = [
+      {
+        id: 1,
+        username: 'patient',
+        password: 'patient123',
         email: 'patient@example.com',
+        role: 'patient',
+        created: new Date().toISOString()
+      },
+      {
+        id: 2,
+        username: 'admin',
+        password: 'admin123',
+        email: 'admin@example.com',
+        role: 'admin',
+        created: new Date().toISOString()
+      }
+    ];
+    localStorage.setItem('users', JSON.stringify(defaultUsers));
+  }
+  
+  if (!localStorage.getItem('patients')) {
+    // Add default patient info for demo
+    const defaultPatients = [
+      {
+        userId: 1,
+        name: 'John Doe',
         age: 45,
         height: 175,
-        weight: 70,
+        weight: 80,
         medicalConditions: ['Type 2 Diabetes', 'Hypertension'],
         medications: ['Metformin 500mg', 'Lisinopril 10mg'],
-        emergencyContact: 'Emergency Contact: (555) 123-4567'
-      });
-    }
-  }
-
-  private handleError(operation: DBOperation, entity: string, error: any) {
-    console.error(`Database ${operation} error for ${entity}:`, error);
-    toast({
-      title: "Database Error",
-      description: `Failed to ${operation} ${entity}. Please try again.`,
-      variant: "destructive",
-    });
-  }
-
-  // Authentication methods
-  async validateCredentials(username: string, password: string): Promise<{id: number, role: string} | null> {
-    try {
-      const credentials = JSON.parse(localStorage.getItem(this.storageKeys.credentials) || '[]');
-      const user = credentials.find((u: any) => u.username === username && u.password === password);
-      
-      if (user) {
-        return { id: user.id, role: user.role };
+        allergies: ['Penicillin'],
+        emergencyContact: 'Jane Doe (555-123-4567)'
+      },
+      {
+        userId: 2,
+        name: 'Admin User',
+        age: 35,
+        height: 180,
+        weight: 75,
+        medicalConditions: [],
+        medications: [],
+        allergies: [],
+        emergencyContact: 'Emergency Services (911)'
       }
-      return null;
-    } catch (error) {
-      this.handleError(DBOperation.READ, 'credentials', error);
-      return null;
-    }
+    ];
+    localStorage.setItem('patients', JSON.stringify(defaultPatients));
   }
+};
 
-  // Patient methods
-  async getPatient(id: number): Promise<Patient | null> {
-    try {
-      const patients = JSON.parse(localStorage.getItem(this.storageKeys.patients) || '[]');
-      return patients.find((p: Patient) => p.id === id) || null;
-    } catch (error) {
-      this.handleError(DBOperation.READ, 'patient', error);
-      return null;
-    }
+// Initialize on import
+initializeDb();
+
+// Health data operations
+const getHealthData = (userId: number) => {
+  const data = JSON.parse(localStorage.getItem('health_data') || '[]');
+  return data.filter((item: any) => item.userId === userId);
+};
+
+const saveHealthData = (data: any) => {
+  const existingData = JSON.parse(localStorage.getItem('health_data') || '[]');
+  const updatedData = [...existingData, { ...data, id: generateId() }];
+  localStorage.setItem('health_data', JSON.stringify(updatedData));
+  return data;
+};
+
+// Health insights operations
+const getHealthInsights = (userId: number, condition?: string) => {
+  const insights = JSON.parse(localStorage.getItem('health_insights') || '[]');
+  let filtered = insights.filter((item: any) => item.userId === userId);
+  
+  // Sort by timestamp, newest first
+  filtered.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  
+  // Filter by condition if specified
+  if (condition) {
+    filtered = filtered.filter((item: any) => item.condition === condition);
   }
+  
+  return filtered;
+};
 
-  async addPatient(patient: Patient): Promise<boolean> {
-    try {
-      const patients = JSON.parse(localStorage.getItem(this.storageKeys.patients) || '[]');
-      patients.push(patient);
-      localStorage.setItem(this.storageKeys.patients, JSON.stringify(patients));
-      return true;
-    } catch (error) {
-      this.handleError(DBOperation.WRITE, 'patient', error);
-      return false;
-    }
+const saveHealthInsight = (insight: any) => {
+  const existingInsights = JSON.parse(localStorage.getItem('health_insights') || '[]');
+  const updatedInsights = [...existingInsights, { ...insight, id: generateId() }];
+  localStorage.setItem('health_insights', JSON.stringify(updatedInsights));
+  return insight;
+};
+
+// User operations
+const getUserByCredentials = (username: string, password: string) => {
+  const users = JSON.parse(localStorage.getItem('users') || '[]');
+  return users.find((user: any) => 
+    user.username === username && user.password === password
+  ) || null;
+};
+
+const getUserByUsername = (username: string) => {
+  const users = JSON.parse(localStorage.getItem('users') || '[]');
+  return users.find((user: any) => user.username === username) || null;
+};
+
+const saveUser = (user: any) => {
+  const users = JSON.parse(localStorage.getItem('users') || '[]');
+  const updatedUsers = [...users, user];
+  localStorage.setItem('users', JSON.stringify(updatedUsers));
+  return user;
+};
+
+// Patient operations
+const getPatient = (userId: number) => {
+  const patients = JSON.parse(localStorage.getItem('patients') || '[]');
+  return patients.find((patient: any) => patient.userId === userId) || null;
+};
+
+const savePatient = (patient: any) => {
+  const patients = JSON.parse(localStorage.getItem('patients') || '[]');
+  const existingPatientIndex = patients.findIndex((p: any) => p.userId === patient.userId);
+  
+  if (existingPatientIndex >= 0) {
+    // Update existing patient
+    patients[existingPatientIndex] = patient;
+  } else {
+    // Add new patient
+    patients.push(patient);
   }
+  
+  localStorage.setItem('patients', JSON.stringify(patients));
+  return patient;
+};
 
-  // Health data methods
-  async saveHealthData(healthData: HealthData): Promise<HealthData | null> {
-    try {
-      const data = JSON.parse(localStorage.getItem(this.storageKeys.healthData) || '[]');
-      
-      // Add timestamp and ID if not present
-      const enhancedData = {
-        ...healthData,
-        id: data.length + 1,
-        timestamp: healthData.timestamp || new Date().toISOString()
-      };
-      
-      data.push(enhancedData);
-      localStorage.setItem(this.storageKeys.healthData, JSON.stringify(data));
-      return enhancedData;
-    } catch (error) {
-      this.handleError(DBOperation.WRITE, 'health data', error);
-      return null;
-    }
-  }
+// Export all database functions
+const dbService = {
+  getHealthData,
+  saveHealthData,
+  getHealthInsights,
+  saveHealthInsight,
+  getUserByCredentials,
+  getUserByUsername,
+  saveUser,
+  getPatient,
+  savePatient
+};
 
-  async getHealthData(userId: number, limit: number = 100): Promise<HealthData[]> {
-    try {
-      const data = JSON.parse(localStorage.getItem(this.storageKeys.healthData) || '[]');
-      
-      // Filter by user ID and sort by timestamp (most recent first)
-      return data
-        .filter((item: HealthData) => item.userId === userId)
-        .sort((a: HealthData, b: HealthData) => 
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        )
-        .slice(0, limit);
-    } catch (error) {
-      this.handleError(DBOperation.READ, 'health data', error);
-      return [];
-    }
-  }
-
-  // Health insights methods
-  async saveHealthInsight(insight: HealthInsight): Promise<HealthInsight | null> {
-    try {
-      const insights = JSON.parse(localStorage.getItem(this.storageKeys.insights) || '[]');
-      
-      // Add ID if not present
-      const enhancedInsight = {
-        ...insight,
-        id: insights.length + 1,
-        timestamp: insight.timestamp || new Date().toISOString()
-      };
-      
-      insights.push(enhancedInsight);
-      localStorage.setItem(this.storageKeys.insights, JSON.stringify(insights));
-      return enhancedInsight;
-    } catch (error) {
-      this.handleError(DBOperation.WRITE, 'health insight', error);
-      return null;
-    }
-  }
-
-  async getHealthInsights(userId: number, condition?: string, limit: number = 50): Promise<HealthInsight[]> {
-    try {
-      const insights = JSON.parse(localStorage.getItem(this.storageKeys.insights) || '[]');
-      
-      // Filter by user ID and optionally by condition
-      let filtered = insights.filter((item: HealthInsight) => item.userId === userId);
-      
-      if (condition) {
-        filtered = filtered.filter((item: HealthInsight) => item.condition === condition);
-      }
-      
-      // Sort by timestamp (most recent first)
-      return filtered
-        .sort((a: HealthInsight, b: HealthInsight) => 
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        )
-        .slice(0, limit);
-    } catch (error) {
-      this.handleError(DBOperation.READ, 'health insights', error);
-      return [];
-    }
-  }
-}
-
-// Create a singleton instance
-const dbService = new DatabaseService();
 export default dbService;
