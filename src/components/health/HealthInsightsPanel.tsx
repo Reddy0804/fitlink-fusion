@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import CustomProgress from "@/components/ui/custom-progress";
 import { useAuth } from "@/context/AuthContext";
 import { getHealthInsights } from "@/lib/db";
-import { HealthInsight } from "@/lib/ml/healthModels";
+import { HealthInsight } from "@/types/healthTypes";
 import { Heart, Droplet, Activity } from "lucide-react";
 
 const getRiskColor = (risk: string) => {

@@ -2,6 +2,60 @@
 import { toast } from "@/hooks/use-toast";
 import dbService from "./database/dbService";
 
+// Get the current logged-in user
+export const getCurrentUser = async () => {
+  try {
+    // In a real app, this would validate a JWT token or session
+    // For this demo, we're checking localStorage
+    const token = localStorage.getItem("token");
+    if (!token) {
+      console.log("No auth token found");
+      return null;
+    }
+    
+    // Parse the token (in a real app, verify it)
+    const userData = JSON.parse(token);
+    console.log("Current user:", userData);
+    
+    return userData;
+  } catch (error) {
+    console.error("Error getting current user:", error);
+    return null;
+  }
+};
+
+// Login function
+export const loginUser = async (username: string, password: string) => {
+  try {
+    console.log("Logging in user:", username);
+    
+    // Authenticate the user
+    const user = await authenticateUser(username, password);
+    
+    if (user) {
+      // In a real app, this would be a JWT token
+      const userData = {
+        id: user.id,
+        name: user.username,
+        email: user.email,
+        role: user.role
+      };
+      
+      // Store in localStorage for persistence
+      localStorage.setItem("token", JSON.stringify(userData));
+      
+      console.log("Login successful");
+      return userData;
+    }
+    
+    console.log("Login failed: Invalid credentials");
+    throw new Error("Invalid username or password");
+  } catch (error) {
+    console.error("Login error:", error);
+    throw error;
+  }
+};
+
 // This function simulates authentication logic
 export const authenticateUser = async (username: string, password: string) => {
   try {
