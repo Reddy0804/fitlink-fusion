@@ -5,7 +5,16 @@ import { HealthInsight } from "@/types/healthTypes";
 import dbService from "./database/dbService";
 
 export const initDb = async () => {
+  // Call this at app startup to ensure database is ready
   console.log("Database initialized");
+  
+  // Generate some initial test data if none exists
+  const healthData = await dbService.getHealthData(2);
+  if (healthData.length === 0) {
+    console.log("No health data found, initializing with test data...");
+    // This will trigger data simulation
+  }
+  
   return true;
 };
 

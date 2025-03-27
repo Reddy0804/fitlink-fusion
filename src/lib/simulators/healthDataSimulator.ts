@@ -1,3 +1,4 @@
+
 import { saveHealthData } from "@/lib/db";
 import { VitalSigns } from "@/types/healthTypes";
 import { HEALTH_DATA_SIMULATION_INTERVAL } from "@/config/config";
@@ -54,10 +55,10 @@ export const startVitalSignsSimulation = (
   // Convert minutes to milliseconds
   const intervalMs = intervalMinutes * 60 * 1000;
   
-  // For demo purposes, we'll generate data more frequently
-  const demoIntervalMs = process.env.NODE_ENV === 'development' ? 10000 : intervalMs;
+  // For demo purposes, we'll generate data more frequently (every 10 seconds)
+  const demoIntervalMs = 10000;
   
-  // Generate initial data
+  // Generate initial data immediately
   generateAndSaveVitals(userId, condition);
   
   // Setup interval for continuous data generation

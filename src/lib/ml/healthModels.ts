@@ -79,15 +79,24 @@ const analyzeHypertension = (userId: number, systolicBP?: number, diastolicBP?: 
   if (diastolicBP >= 120) {
     severity += 50;
     factors.push('Extremely high diastolic blood pressure');
-    risk = risk !== 'critical' ? 'critical' : risk;
+    // Fixed comparison error - properly typing the condition
+    if (risk !== 'critical') {
+      risk = 'critical';
+    }
   } else if (diastolicBP >= 90) {
     severity += 30;
     factors.push('High diastolic blood pressure');
-    risk = risk !== 'critical' && risk !== 'high' ? 'high' : risk;
+    // Fixed comparison error - properly typing the condition
+    if (risk !== 'critical' && risk !== 'high') {
+      risk = 'high';
+    }
   } else if (diastolicBP >= 80) {
     severity += 10;
     factors.push('Elevated blood pressure (diastolic)');
-    risk = risk === 'low' ? 'moderate' : risk;
+    // Fixed comparison error - properly typing the condition
+    if (risk === 'low') {
+      risk = 'moderate';
+    }
   }
   
   // Generate recommendation based on risk level
@@ -157,7 +166,10 @@ const analyzeCardiovascular = (
     } else if (oxygenSaturation < 95) {
       severity += 20;
       factors.push('Below normal oxygen saturation');
-      risk = risk !== 'critical' ? 'moderate' : risk;
+      // Fixed comparison error - properly typing the condition
+      if (risk !== 'critical') {
+        risk = 'moderate';
+      }
     }
   }
   
@@ -165,9 +177,15 @@ const analyzeCardiovascular = (
   if (severity >= 50) {
     risk = 'critical';
   } else if (severity >= 30) {
-    risk = risk !== 'critical' ? 'high' : risk;
+    // Fixed comparison error - properly typing the condition
+    if (risk !== 'critical') {
+      risk = 'high';
+    }
   } else if (severity >= 15) {
-    risk = risk !== 'critical' && risk !== 'high' ? 'moderate' : risk;
+    // Fixed comparison error - properly typing the condition
+    if (risk !== 'critical' && risk !== 'high') {
+      risk = 'moderate';
+    }
   }
   
   // Generate recommendation
