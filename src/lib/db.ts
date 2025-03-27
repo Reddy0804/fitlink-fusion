@@ -1,7 +1,7 @@
 
 // Database utilities
 import { toast } from "@/components/ui/use-toast";
-import { HealthInsight } from "./ml/healthModels";
+import { HealthInsight } from "@/types/healthTypes";
 import dbService from "./database/dbService";
 
 export const initDb = async () => {

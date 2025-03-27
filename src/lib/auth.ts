@@ -18,6 +18,61 @@ const generateToken = (userId: number): string => {
   return `mock-jwt-${userId}-${Date.now()}`;
 };
 
+export const registerUser = async (username: string, email: string, password: string): Promise<User | null> => {
+  try {
+    // Check if user already exists
+    const credentials = JSON.parse(localStorage.getItem("health_app_credentials") || '[]');
+    const userExists = credentials.find((u: any) => 
+      u.username === username || u.email === email
+    );
+    
+    if (userExists) {
+      throw new Error("User already exists");
+    }
+    
+    // Create new user ID
+    const newUserId = credentials.length > 0 
+      ? Math.max(...credentials.map((u: any) => u.id)) + 1 
+      : 1;
+    
+    // Add new user credentials
+    const newUser = {
+      id: newUserId,
+      username,
+      email,
+      password,
+      role: 'patient'
+    };
+    
+    credentials.push(newUser);
+    localStorage.setItem("health_app_credentials", JSON.stringify(credentials));
+    
+    // Create patient record
+    const patient = {
+      id: newUserId,
+      name: username,
+      email,
+      age: 30, // Default values
+      height: 175,
+      weight: 70
+    };
+    
+    const patients = JSON.parse(localStorage.getItem("health_app_patients") || '[]');
+    patients.push(patient);
+    localStorage.setItem("health_app_patients", JSON.stringify(patients));
+    
+    return {
+      id: newUserId,
+      name: username,
+      email,
+      role: 'patient'
+    };
+  } catch (error) {
+    console.error("Registration error:", error);
+    throw error;
+  }
+};
+
 export const loginUser = async (username: string, password: string): Promise<User> => {
   try {
     // Validate credentials against database
