@@ -6,11 +6,11 @@ export const GROQ_API_KEY = "gsk_IPjbYrAqSE7xPe1ztivMWGdyb3FYzUO3dvDTUA2Htdr0wfS
 
 // Database configuration (placeholder for future connection details)
 export const DB_CONFIG = {
-  host: process.env.DB_HOST || 'localhost',
-  port: Number(process.env.DB_PORT) || 5432,
-  database: process.env.DB_NAME || 'health_tracking',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || '',
+  host: import.meta.env.DB_HOST || 'localhost',
+  port: Number(import.meta.env.DB_PORT) || 5432,
+  database: import.meta.env.DB_NAME || 'health_tracking',
+  user: import.meta.env.DB_USER || 'postgres',
+  password: import.meta.env.DB_PASSWORD || '',
 };
 
 // API endpoint for Groq LLama model
