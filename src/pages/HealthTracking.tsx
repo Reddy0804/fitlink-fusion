@@ -1,6 +1,8 @@
 
 import HealthTrackingForm from "@/components/health/HealthTrackingForm";
 import HealthTips from "@/components/health/HealthTips";
+import HealthInsightsPanel from "@/components/health/HealthInsightsPanel";
+import AiHealthConsultant from "@/components/ai/AiHealthConsultant";
 
 const HealthTracking = () => {
   return (
@@ -15,6 +17,15 @@ const HealthTracking = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <HealthTrackingForm />
+        </div>
+        <div>
+          <HealthInsightsPanel />
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <AiHealthConsultant />
         </div>
         <div>
           <HealthTips />

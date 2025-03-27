@@ -1,11 +1,33 @@
 
+import { useEffect } from "react";
 import { Activity, Heart, Moon, Droplet } from "lucide-react";
 import HealthMetricCard from "@/components/dashboard/HealthMetricCard";
 import ActivityChart from "@/components/dashboard/ActivityChart";
 import RecommendationCard from "@/components/dashboard/RecommendationCard";
 import AiInsightSummary from "@/components/ai/AiInsightSummary";
+import HealthInsightsPanel from "@/components/health/HealthInsightsPanel";
+import AiHealthConsultant from "@/components/ai/AiHealthConsultant";
+import { useAuth } from "@/context/AuthContext";
+import { startVitalSignsSimulation } from "@/lib/simulators/healthDataSimulator";
 
 const Dashboard = () => {
+  const { user } = useAuth();
+  
+  useEffect(() => {
+    // Start health data simulation when dashboard loads
+    // This would be replaced by real sensor data in a production app
+    let stopSimulation: (() => void) | null = null;
+    
+    if (user) {
+      // For demo purposes, we'll simulate data for a user with diabetes
+      stopSimulation = startVitalSignsSimulation(user.id, 'diabetes', 5);
+    }
+    
+    return () => {
+      if (stopSimulation) stopSimulation();
+    };
+  }, [user]);
+  
   const healthScores = [
     { category: "Physical Activity", score: 78, color: "bg-blue-500" },
     { category: "Nutrition", score: 65, color: "bg-green-500" },
@@ -57,7 +79,7 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="col-span-2">
+        <div className="lg:col-span-2">
           <ActivityChart
             title="Weekly Activity"
             description="Your activity trends over the past week"
@@ -72,6 +94,15 @@ const Dashboard = () => {
             title="Improve your sleep quality"
             description="Based on your recent sleep patterns, we recommend adjusting your bedtime routine to improve sleep quality."
           />
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <AiHealthConsultant />
+        </div>
+        <div>
+          <HealthInsightsPanel />
         </div>
       </div>
     </div>
