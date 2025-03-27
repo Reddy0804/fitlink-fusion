@@ -1,120 +1,144 @@
 
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import { LayoutDashboard, Activity, LucideIcon, Heart, LineChart, LogOut, Menu, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Menu, X, ActivitySquare, Bell, LogOut } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import MobileNav from "./MobileNav";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/context/AuthContext";
+import MobileNav from "./MobileNav";
+import { useToast } from "@/hooks/use-toast";
+
+interface NavItem {
+  title: string;
+  href: string;
+  icon: LucideIcon;
+}
 
 const Header = () => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const location = useLocation();
+  const { user, logout } = useAuth();
   const { toast } = useToast();
-  const { isAuthenticated, user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleNotificationClick = () => {
-    toast({
-      title: "Notifications",
-      description: "You have no new notifications.",
-    });
-  };
-
+  
   const handleLogout = () => {
     logout();
     toast({
-      title: "Logged Out",
+      title: "Logged out",
       description: "You have been successfully logged out.",
     });
-    navigate('/login');
   };
-
+  
+  const navItems: NavItem[] = [
+    {
+      title: "Dashboard",
+      href: "/",
+      icon: LayoutDashboard,
+    },
+    {
+      title: "Health Tracking",
+      href: "/tracking",
+      icon: Activity,
+    },
+    {
+      title: "Recommendations",
+      href: "/recommendations",
+      icon: Heart,
+    },
+    {
+      title: "Supervisor",
+      href: "/supervisor",
+      icon: LineChart,
+    },
+  ];
+  
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-2">
+    <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
+      <div className="container flex h-16 items-center justify-between py-4">
+        <div className="flex items-center gap-8">
           <Link to="/" className="flex items-center gap-2">
-            <ActivitySquare className="h-6 w-6 text-fitlink-primary" />
-            <span className="font-bold text-xl hidden sm:inline-block">FitLink Fusion</span>
+            <Activity className="h-6 w-6 text-primary" />
+            <span className="font-bold text-xl">HealthTracker</span>
           </Link>
+          
+          {/* Desktop navigation */}
+          <nav className="hidden md:flex items-center gap-6">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                to={item.href}
+                className={`flex items-center gap-2 text-sm font-medium ${
+                  location.pathname === item.href
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <item.icon className="h-4 w-4" />
+                {item.title}
+              </Link>
+            ))}
+          </nav>
         </div>
-
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6">
-          <Link to="/" className="text-sm font-medium hover:text-fitlink-primary transition-colors">
-            Dashboard
-          </Link>
-          <Link to="/tracking" className="text-sm font-medium hover:text-fitlink-primary transition-colors">
-            Health Tracking
-          </Link>
-          <Link to="/recommendations" className="text-sm font-medium hover:text-fitlink-primary transition-colors">
-            AI Recommendations
-          </Link>
-        </nav>
-
+        
         <div className="flex items-center gap-4">
-          {isAuthenticated ? (
-            <>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={handleNotificationClick}
-                className="relative"
-              >
-                <Bell className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 bg-fitlink-primary text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
-                  2
-                </span>
-              </Button>
-              
-              <div className="flex items-center gap-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src="/avatar-placeholder.jpg" alt={user?.name || "User"} />
-                  <AvatarFallback className="bg-fitlink-primary text-white">
-                    {user?.name?.substring(0, 2).toUpperCase() || "U"}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-sm font-medium hidden sm:inline-block">{user?.name}</span>
-              </div>
-              
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={handleLogout}
-                className="hidden sm:flex"
-                title="Logout"
-              >
-                <LogOut className="h-5 w-5" />
-              </Button>
-            </>
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src="/avatar.png" alt={user.name} />
+                    <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <div className="flex items-center justify-start gap-2 p-2">
+                  <div className="flex flex-col space-y-1 leading-none">
+                    <p className="font-medium">{user.name}</p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                  </div>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/profile" className="cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <button onClick={handleLogout} className="cursor-pointer w-full flex items-center">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Log out
+                  </button>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" asChild>
-                <Link to="/login">Sign In</Link>
-              </Button>
-              <Button className="health-gradient" asChild>
-                <Link to="/register">Sign Up</Link>
-              </Button>
-            </div>
+            <Link to="/login">
+              <Button size="sm">Login</Button>
+            </Link>
           )}
-
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => setMobileMenuOpen(true)}
-            className="md:hidden"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
+          
+          {/* Mobile navigation */}
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="md:hidden">
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Toggle navigation menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right">
+              <MobileNav navItems={navItems} />
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
-
-      {/* Mobile Menu */}
-      <MobileNav 
-        isOpen={mobileMenuOpen} 
-        onClose={() => setMobileMenuOpen(false)} 
-      />
     </header>
   );
 };

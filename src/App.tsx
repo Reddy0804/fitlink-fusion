@@ -13,6 +13,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Dashboard from "./pages/Index";
 import HealthTracking from "./pages/HealthTracking";
 import Recommendations from "./pages/Recommendations";
+import Supervisor from "./pages/Supervisor";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
@@ -43,6 +44,7 @@ const App = () => {
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/tracking" element={<HealthTracking />} />
                   <Route path="/recommendations" element={<Recommendations />} />
+                  <Route path="/supervisor" element={<Supervisor />} />
                 </Route>
               </Route>
               

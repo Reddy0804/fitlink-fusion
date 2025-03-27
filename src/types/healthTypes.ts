@@ -1,3 +1,4 @@
+
 export interface HealthData {
   timestamp: string;
   heartRate: number;
@@ -35,13 +36,28 @@ export interface MLPrediction {
   explanation: string;
 }
 
-// Make sure HealthInsight is properly exported to resolve the import issue
+export interface VitalSigns {
+  bloodGlucose: number; // mg/dL
+  systolicBP: number; // mmHg
+  diastolicBP: number; // mmHg
+  heartRate: number; // bpm
+  oxygenSaturation: number; // percentage
+  temperature: number; // Celsius
+  respirationRate: number; // breaths per minute
+  userId: number;
+}
+
 export interface HealthInsight {
-  metric: string;
-  value: number;
-  unit: string;
+  id?: number;
+  userId: number;
+  condition: 'diabetes' | 'hypertension' | 'cardiovascular';
+  severity: number; // 0-100 scale
+  risk: 'low' | 'moderate' | 'high' | 'critical';
+  factors: string[];
+  recommendation: string;
   timestamp: string;
-  risk: "low" | "moderate" | "high" | "critical";
-  trend: "increasing" | "decreasing" | "stable";
-  recommendation?: string;
+  metric?: string;
+  value?: number;
+  unit?: string;
+  trend?: "increasing" | "decreasing" | "stable";
 }
